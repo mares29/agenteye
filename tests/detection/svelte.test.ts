@@ -5,7 +5,6 @@ import { svelteDetector } from "../../src/content/detection/svelte";
 describe("svelteDetector", () => {
   afterEach(() => {
     delete (window as any).__svelte;
-    // Clean up DOM
     document.body.innerHTML = "";
   });
 
@@ -23,15 +22,16 @@ describe("svelteDetector", () => {
       const el = document.createElement("div");
       el.setAttribute("data-svelte-h", "svelte-abc123");
       document.body.appendChild(el);
-
       expect(svelteDetector.detect()).toBe(true);
     });
 
     it("returns true when __svelte_meta exists on elements", () => {
       const el = document.createElement("div");
-      (el as any).__svelte_meta = { name: "App" };
+      (el as any).__svelte_meta = {
+        loc: { file: "src/App.svelte", line: 1, column: 0 },
+        parent: null,
+      };
       document.body.appendChild(el);
-
       expect(svelteDetector.detect()).toBe(true);
     });
 
@@ -39,7 +39,6 @@ describe("svelteDetector", () => {
       const el = document.createElement("div");
       el.setAttribute("data-sveltekit-preload-data", "hover");
       document.body.appendChild(el);
-
       expect(svelteDetector.detect()).toBe(true);
     });
   });
@@ -50,9 +49,12 @@ describe("svelteDetector", () => {
       expect(svelteDetector.getComponentInfo(el)).toBeNull();
     });
 
-    it("extracts component name from __svelte_meta", () => {
-      const el = document.createElement("div");
-      (el as any).__svelte_meta = { name: "Button" };
+    it("extracts component name from __svelte_meta.loc.file", () => {
+      const el = document.createElement("button");
+      (el as any).__svelte_meta = {
+        loc: { file: "src/lib/Button.svelte", line: 5, column: 2 },
+        parent: null,
+      };
 
       const info = svelteDetector.getComponentInfo(el);
       expect(info).not.toBeNull();
@@ -60,40 +62,98 @@ describe("svelteDetector", () => {
       expect(info!.hierarchy).toContain("<Button>");
     });
 
-    it("cleans file path component names", () => {
-      const el = document.createElement("div");
-      (el as any).__svelte_meta = { name: "src/lib/Button.svelte" };
+    it("walks parent dev_stack for component hierarchy", () => {
+      const el = document.createElement("button");
 
-      const info = svelteDetector.getComponentInfo(el);
-      expect(info).not.toBeNull();
-      expect(info!.hierarchy).toContain("<Button>");
-      expect(info!.hierarchy).not.toContain("src/lib");
-      expect(info!.hierarchy).not.toContain(".svelte");
-    });
+      // Simulate Svelte 5 dev_stack: Button is inside Card, which is inside App
+      const appEntry = {
+        type: "component",
+        file: "src/App.svelte",
+        line: 1,
+        column: 0,
+        parent: null,
+      };
+      const cardEntry = {
+        type: "component",
+        file: "src/lib/Card.svelte",
+        line: 3,
+        column: 4,
+        parent: appEntry,
+      };
 
-    it("extracts source file from loc", () => {
-      const el = document.createElement("div");
       (el as any).__svelte_meta = {
-        name: "Card",
-        loc: { file: "src/Card.svelte", line: 10 },
+        loc: { file: "src/lib/Button.svelte", line: 8, column: 2 },
+        parent: cardEntry,
       };
 
       const info = svelteDetector.getComponentInfo(el);
       expect(info).not.toBeNull();
-      expect(info!.sourceFile).toBe("src/Card.svelte:10");
+      expect(info!.hierarchy).toContain("<Button>");
+      expect(info!.hierarchy).toContain("<Card>");
+      expect(info!.hierarchy).toContain("<App>");
     });
 
-    it("walks up parent tree collecting components", () => {
-      const parent = document.createElement("div");
-      (parent as any).__svelte_meta = { name: "Layout" };
+    it("skips non-component entries in dev_stack (if, each)", () => {
+      const el = document.createElement("div");
 
-      const child = document.createElement("button");
-      (child as any).__svelte_meta = { name: "Button" };
+      const appEntry = {
+        type: "component",
+        file: "src/App.svelte",
+        line: 1,
+        column: 0,
+        parent: null,
+      };
+      const ifEntry = {
+        type: "if",
+        file: "src/App.svelte",
+        line: 10,
+        column: 2,
+        parent: appEntry,
+      };
+
+      (el as any).__svelte_meta = {
+        loc: { file: "src/App.svelte", line: 11, column: 4 },
+        parent: ifEntry,
+      };
+
+      const info = svelteDetector.getComponentInfo(el);
+      expect(info).not.toBeNull();
+      // Should only contain App, not "if"
+      expect(info!.hierarchy).toBe("<App>");
+    });
+
+    it("extracts source file from dev_stack", () => {
+      const el = document.createElement("div");
+      const componentEntry = {
+        type: "component",
+        file: "src/lib/Card.svelte",
+        line: 10,
+        column: 0,
+        parent: null,
+      };
+
+      (el as any).__svelte_meta = {
+        loc: { file: "src/lib/Card.svelte", line: 15, column: 4 },
+        parent: componentEntry,
+      };
+
+      const info = svelteDetector.getComponentInfo(el);
+      expect(info).not.toBeNull();
+      expect(info!.sourceFile).toBe("src/lib/Card.svelte:10");
+    });
+
+    it("walks up DOM to find nearest element with __svelte_meta", () => {
+      const parent = document.createElement("div");
+      (parent as any).__svelte_meta = {
+        loc: { file: "src/lib/Layout.svelte", line: 3, column: 0 },
+        parent: null,
+      };
+
+      const child = document.createElement("span");
       parent.appendChild(child);
 
       const info = svelteDetector.getComponentInfo(child);
       expect(info).not.toBeNull();
-      expect(info!.hierarchy).toContain("<Button>");
       expect(info!.hierarchy).toContain("<Layout>");
     });
   });

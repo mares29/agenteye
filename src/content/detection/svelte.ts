@@ -3,99 +3,100 @@
 // =============================================================================
 //
 // Detects Svelte on the page and extracts component information.
-// Svelte 5 uses runes internally but still annotates DOM elements
-// with component metadata in dev mode.
 //
-// Detection strategies:
-// 1. __svelte_meta (Svelte dev mode annotation)
-// 2. data-svelte-h (Svelte hydration markers)
-// 3. $$root / __svelte_component__ on elements
+// Svelte 5 dev mode sets `__svelte_meta` on DOM elements with:
+//   {
+//     loc: { file: string, line: number, column: number },
+//     parent: DevStackEntry | null
+//   }
+//
+// DevStackEntry is a linked list:
+//   {
+//     type: "component" | "if" | "each" | "await" | ...,
+//     file: string,        // e.g. "src/lib/Button.svelte"
+//     line: number,
+//     column: number,
+//     parent: DevStackEntry | null
+//   }
+//
+// We walk the `parent` chain collecting entries where type === "component"
+// to build the component hierarchy.
 
 import type { FrameworkDetector } from "./types";
 import type { FrameworkComponentInfo } from "../types";
 
-/** Check for Svelte metadata on a DOM element */
-function getSvelteMeta(el: Element): any | null {
-  // Svelte 5 dev mode: __svelte_meta
-  if ((el as any).__svelte_meta) {
-    return (el as any).__svelte_meta;
-  }
+type DevStackEntry = {
+  type: string;
+  file: string;
+  line: number;
+  column: number;
+  parent: DevStackEntry | null;
+};
 
-  // Svelte 4 and earlier: __svelte_component__
-  if ((el as any).__svelte_component__) {
-    return { component: (el as any).__svelte_component__ };
-  }
+type SvelteMeta = {
+  loc: { file: string; line: number; column: number };
+  parent: DevStackEntry | null;
+};
 
+/** Get __svelte_meta from a DOM element */
+function getSvelteMeta(el: Element): SvelteMeta | null {
+  const meta = (el as any).__svelte_meta;
+  if (meta && meta.loc) return meta;
   return null;
 }
 
-/** Walk up the DOM collecting Svelte component names */
-function walkSvelteTree(
-  el: Element,
-  maxDepth = 15,
+/** Extract component name from a file path */
+function fileToComponentName(file: string): string {
+  // "src/lib/components/Button.svelte" → "Button"
+  let name = file;
+  if (name.includes("/") || name.includes("\\")) {
+    const parts = name.split(/[/\\]/);
+    name = parts[parts.length - 1];
+  }
+  name = name.replace(/\.svelte$/, "");
+  return name;
+}
+
+/** Walk the dev_stack parent chain collecting component entries */
+function walkDevStack(
+  entry: DevStackEntry | null,
+  maxDepth = 20,
 ): { names: string[]; sourceFile: string | null } {
   const names: string[] = [];
   let sourceFile: string | null = null;
-  let current: Element | null = el;
+  let current = entry;
   let depth = 0;
 
   while (current && depth < maxDepth) {
-    const meta = getSvelteMeta(current);
-    if (meta) {
-      // Extract component name
-      const name = extractComponentName(meta);
-      if (name) {
+    if (current.type === "component" && current.file) {
+      const name = fileToComponentName(current.file);
+      if (name.length > 2) {
         names.push(name);
-        if (!sourceFile && meta.loc) {
-          sourceFile = `${meta.loc.file}:${meta.loc.line}`;
+        if (!sourceFile) {
+          sourceFile = `${current.file}:${current.line}`;
         }
       }
     }
-
-    current = current.parentElement;
+    current = current.parent;
     depth++;
   }
 
   return { names, sourceFile };
 }
 
-/** Extract a component name from Svelte metadata */
-function extractComponentName(meta: any): string | null {
-  // Svelte 5: meta.name or meta.component
-  if (meta.name && typeof meta.name === "string") {
-    return cleanComponentName(meta.name);
-  }
-
-  // Constructor-based (Svelte 4)
-  if (meta.component?.constructor?.name) {
-    const name = meta.component.constructor.name;
-    if (name !== "Object" && name.length > 2) {
-      return name;
-    }
-  }
-
-  return null;
-}
-
-/** Clean up component name (remove file paths, extensions) */
-function cleanComponentName(name: string): string {
-  // If it's a file path like "src/lib/Button.svelte", extract "Button"
-  if (name.includes("/") || name.includes("\\")) {
-    const parts = name.split(/[/\\]/);
-    name = parts[parts.length - 1];
-  }
-  // Remove .svelte extension
-  name = name.replace(/\.svelte$/, "");
-  return name;
-}
-
 export const svelteDetector: FrameworkDetector = {
   name: "svelte",
 
   detect(): boolean {
-    // Check for Svelte dev tools
+    // Check for Svelte global (set by Svelte runtime)
     if (typeof window !== "undefined" && (window as any).__svelte) {
       return true;
+    }
+
+    // Check for __svelte_meta on elements (dev mode)
+    const elements = document.querySelectorAll("body > *, body > * > *");
+    for (const el of elements) {
+      if (getSvelteMeta(el)) return true;
     }
 
     // Check for data-svelte-h hydration markers
@@ -103,13 +104,7 @@ export const svelteDetector: FrameworkDetector = {
       return true;
     }
 
-    // Check for __svelte_meta on elements
-    const elements = document.querySelectorAll("body > *, body > * > *");
-    for (const el of elements) {
-      if (getSvelteMeta(el)) return true;
-    }
-
-    // Check for Svelte's SvelteKit markers
+    // Check for SvelteKit markers
     if (document.querySelector("[data-sveltekit-preload-data]")) {
       return true;
     }
@@ -118,15 +113,53 @@ export const svelteDetector: FrameworkDetector = {
   },
 
   getComponentInfo(el: Element): FrameworkComponentInfo | null {
-    const { names, sourceFile } = walkSvelteTree(el);
-    if (names.length === 0) return null;
+    // First check the element itself for __svelte_meta
+    const meta = getSvelteMeta(el);
+    if (meta) {
+      // Walk the parent dev_stack chain for component hierarchy
+      const { names, sourceFile } = walkDevStack(meta.parent);
 
-    const hierarchy = names.map((n) => `<${n}>`).join(" ");
+      // The element's own loc gives us the source file of the template
+      const elementSource = `${meta.loc.file}:${meta.loc.line}`;
+      const elementComponentName = fileToComponentName(meta.loc.file);
 
-    return {
-      framework: "svelte",
-      hierarchy,
-      sourceFile: sourceFile ?? undefined,
-    };
+      // Prepend the element's own component if not already in the list
+      if (names.length === 0 || names[0] !== elementComponentName) {
+        names.unshift(elementComponentName);
+      }
+
+      if (names.length === 0) return null;
+
+      return {
+        framework: "svelte",
+        hierarchy: names.map((n) => `<${n}>`).join(" "),
+        sourceFile: sourceFile ?? elementSource,
+      };
+    }
+
+    // Walk up DOM to find nearest element with __svelte_meta
+    let current: Element | null = el.parentElement;
+    let depth = 0;
+    while (current && depth < 20) {
+      const parentMeta = getSvelteMeta(current);
+      if (parentMeta) {
+        const { names, sourceFile } = walkDevStack(parentMeta.parent);
+        const elementComponentName = fileToComponentName(parentMeta.loc.file);
+        if (names.length === 0 || names[0] !== elementComponentName) {
+          names.unshift(elementComponentName);
+        }
+        if (names.length === 0) return null;
+        return {
+          framework: "svelte",
+          hierarchy: names.map((n) => `<${n}>`).join(" "),
+          sourceFile:
+            sourceFile ?? `${parentMeta.loc.file}:${parentMeta.loc.line}`,
+        };
+      }
+      current = current.parentElement;
+      depth++;
+    }
+
+    return null;
   },
 };
