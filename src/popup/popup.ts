@@ -4,39 +4,27 @@
 
 const toggle = document.querySelector("#toggle input") as HTMLInputElement;
 
-async function refreshState(): Promise<void> {
-  try {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
+function sendToTab(
+  message: Record<string, string>,
+  callback?: (response: any) => void,
+): void {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const tabId = tabs[0]?.id;
+    if (!tabId) return;
+    chrome.tabs.sendMessage(tabId, message, (response) => {
+      // Ignore "Receiving end does not exist" when content script isn't loaded
+      if (chrome.runtime.lastError) return;
+      callback?.(response);
     });
-    if (!tab?.id) return;
-
-    chrome.tabs.sendMessage(
-      tab.id,
-      { type: "get-extension-state" },
-      (response) => {
-        if (chrome.runtime.lastError || !response) return;
-        toggle.checked = response.enabled;
-      },
-    );
-  } catch {
-    // Content script not loaded on this page
-  }
+  });
 }
 
-toggle.addEventListener("change", async () => {
-  const [tab] = await chrome.tabs.query({
-    active: true,
-    currentWindow: true,
-  });
-  if (!tab?.id) return;
-
-  chrome.tabs.sendMessage(tab.id, { type: "toggle-extension" }, (response) => {
-    if (response) {
-      toggle.checked = response.enabled;
-    }
-  });
+sendToTab({ type: "get-extension-state" }, (response) => {
+  if (response) toggle.checked = response.enabled;
 });
 
-refreshState();
+toggle.addEventListener("change", () => {
+  sendToTab({ type: "toggle-extension" }, (response) => {
+    if (response) toggle.checked = response.enabled;
+  });
+});
