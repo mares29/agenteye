@@ -490,6 +490,13 @@
   border-color: #e6d520;
 }
 
+.agenteye-settings-framework {
+  font-size: 11px;
+  font-weight: 600;
+  color: #e6d520;
+  text-transform: capitalize;
+}
+
 .agenteye-settings-option input[type="checkbox"] {
   width: 16px;
   height: 16px;

@@ -5,6 +5,7 @@
 
 import type { AgentEyeEngine } from "../engine";
 import type { OutputDetailLevel } from "../types";
+import { detectFrameworks, getActiveFrameworks } from "../detection/registry";
 
 const DETAIL_OPTIONS: { value: OutputDetailLevel; label: string }[] = [
   { value: "compact", label: "Compact" },
@@ -74,7 +75,31 @@ export class SettingsPanel {
       clearCheckbox.checked = newState.clearAfterCopy;
     });
 
-    this.container.append(title, detailOption, clearOption);
+    // Detected framework info
+    const frameworkRow = document.createElement("div");
+    frameworkRow.className = "agenteye-settings-option";
+
+    const frameworkLabel = document.createElement("label");
+    frameworkLabel.textContent = "Framework";
+
+    const frameworkValue = document.createElement("span");
+    frameworkValue.className = "agenteye-settings-framework";
+    frameworkValue.textContent = "detecting...";
+
+    frameworkRow.append(frameworkLabel, frameworkValue);
+
+    // Detect async — bridge may not have responded yet
+    const updateFramework = () => {
+      detectFrameworks();
+      const active = getActiveFrameworks();
+      frameworkValue.textContent =
+        active.length > 0 ? active.join(", ") : "vanilla";
+    };
+    // Try immediately, then retry after a short delay for SPAs
+    updateFramework();
+    setTimeout(updateFramework, 1500);
+
+    this.container.append(title, frameworkRow, detailOption, clearOption);
     root.appendChild(this.container);
   }
 
