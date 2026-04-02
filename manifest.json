@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "AgentEye",
+  "description": "Visual feedback for AI coding agents — click elements, annotate, and send structured feedback.",
+  "version": "0.1.0",
+  "permissions": ["activeTab", "storage", "contextMenus"],
+  "action": {
+    "default_popup": "popup/index.html"
+  },
+  "background": {
+    "service_worker": "background/index.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content/index.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

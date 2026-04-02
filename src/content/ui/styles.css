@@ -1,0 +1,506 @@
+/* =============================================================================
+   AgentEye Extension Styles
+   Scoped inside shadow DOM — no conflicts with host page.
+
+   Color palette — Hyper Red:
+     --accent:       #e6d520  (hyper red)
+     --accent-hover: #ede04a
+     --accent-glow:  rgba(255,59,59,0.4)
+     --surface:      rgba(0,0,0,0.75)
+     --text:         #f0f0f0
+     --text-muted:   rgba(240,240,240,0.5)
+     --danger:       #ff8a8a  (soft red for clear — lighter to differentiate)
+     --success:      #4ade80  (green)
+     --border:       rgba(255,255,255,0.1)
+   ============================================================================= */
+
+:host {
+  all: initial;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #f0f0f0;
+}
+
+/* =============================================================================
+   Toolbar
+   ============================================================================= */
+
+.agenteye-toolbar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  user-select: none;
+  transition: opacity 0.2s ease;
+  pointer-events: auto;
+}
+
+.agenteye-toolbar.inactive {
+  opacity: 0.6;
+}
+
+.agenteye-toolbar.inactive:hover {
+  opacity: 1;
+}
+
+.agenteye-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 6px;
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  color: #f0f0f0;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    transform 0.1s ease,
+    box-shadow 0.12s ease;
+  white-space: nowrap;
+}
+
+.agenteye-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.agenteye-btn:active {
+  transform: translateY(0);
+}
+
+/* Icon + text vertical alignment */
+.agenteye-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.agenteye-btn-icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  color: inherit;
+}
+
+.agenteye-btn-text {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  color: inherit;
+}
+
+.agenteye-btn.primary {
+  background: #e6d520;
+  color: #0a0a0a;
+  box-shadow: 0 2px 12px rgba(230, 213, 32, 0.45);
+}
+
+.agenteye-btn.primary * {
+  color: #0a0a0a;
+}
+
+.agenteye-btn.primary:hover {
+  background: #ede04a;
+  box-shadow: 0 4px 20px rgba(230, 213, 32, 0.55);
+}
+
+.agenteye-btn.active {
+  background: #4ade80;
+  color: #0a0a0a;
+  font-weight: 600;
+}
+
+.agenteye-btn.active * {
+  color: #0a0a0a;
+}
+
+.agenteye-btn.active:hover {
+  background: #6ee7a0;
+}
+
+.agenteye-btn.copied {
+  background: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+  animation: agenteye-copy-flash 0.3s ease-out;
+}
+
+.agenteye-btn.copied * {
+  color: #4ade80;
+}
+
+@keyframes agenteye-copy-flash {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.agenteye-btn.danger {
+  background: transparent;
+  color: #ff8a8a;
+}
+
+.agenteye-btn.danger * {
+  color: #ff8a8a;
+}
+
+.agenteye-btn.danger:hover {
+  background: rgba(255, 138, 138, 0.2);
+  color: #ff8a8a;
+}
+
+.agenteye-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 3px;
+}
+
+.agenteye-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #e6d520;
+  color: #0a0a0a;
+  font-size: 10px;
+  font-weight: 700;
+  box-shadow: 0 1px 6px rgba(230, 213, 32, 0.45);
+}
+
+.agenteye-label {
+  font-size: 11px;
+  color: rgba(240, 240, 240, 0.5);
+  padding: 0 4px;
+}
+
+/* =============================================================================
+   Hover Overlay
+   ============================================================================= */
+
+.agenteye-hover-overlay {
+  position: fixed;
+  pointer-events: none;
+  z-index: 2147483646;
+  border: 2px solid #e6d520;
+  border-radius: 4px;
+  background: rgba(230, 213, 32, 0.08);
+  transition: all 0.1s ease-out;
+}
+
+.agenteye-hover-label {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(230, 213, 32, 0.3);
+  border-radius: 9999px;
+  color: #f0f0f0;
+  font-size: 11px;
+  white-space: nowrap;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.agenteye-hover-label .framework {
+  color: #4ade80;
+  font-size: 10px;
+  margin-left: 6px;
+}
+
+/* =============================================================================
+   Annotation Markers
+   ============================================================================= */
+
+.agenteye-marker {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #e6d520;
+  color: #0a0a0a;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  z-index: 2147483645;
+  box-shadow:
+    0 2px 10px rgba(230, 213, 32, 0.5),
+    0 0 0 2px rgba(230, 213, 32, 0.2);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+  pointer-events: auto;
+}
+
+.agenteye-marker:hover {
+  transform: translate(-50%, -50%) scale(1.2);
+  box-shadow:
+    0 4px 20px rgba(230, 213, 32, 0.6),
+    0 0 0 3px rgba(230, 213, 32, 0.25);
+}
+
+.agenteye-marker.fixed {
+  position: fixed;
+}
+
+/* =============================================================================
+   Annotation Popup
+   ============================================================================= */
+
+.agenteye-popup {
+  position: fixed;
+  z-index: 2147483647;
+  width: 340px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 16px;
+  animation: agenteye-fade-in 0.15s ease-out;
+  pointer-events: auto;
+}
+
+@keyframes agenteye-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes agenteye-fade-in-centered {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.agenteye-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.agenteye-popup-element {
+  font-size: 12px;
+  color: #e6d520;
+  font-weight: 600;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agenteye-popup-close {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  color: rgba(240, 240, 240, 0.4);
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.agenteye-popup-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f0f0f0;
+}
+
+.agenteye-popup-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f0f0f0;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.agenteye-popup-textarea:focus {
+  border-color: #e6d520;
+  box-shadow: 0 0 0 2px rgba(230, 213, 32, 0.25);
+}
+
+.agenteye-popup-textarea::placeholder {
+  color: rgba(240, 240, 240, 0.3);
+}
+
+.agenteye-popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.agenteye-popup-meta {
+  font-size: 11px;
+  color: rgba(240, 240, 240, 0.4);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.agenteye-popup-meta .framework-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+  font-size: 10px;
+  margin-top: 4px;
+}
+
+/* =============================================================================
+   Settings Panel
+   ============================================================================= */
+
+.agenteye-settings {
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  width: 260px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 14px;
+  animation: agenteye-fade-in-centered 0.15s ease-out;
+  pointer-events: auto;
+}
+
+.agenteye-settings-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(240, 240, 240, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.agenteye-settings-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.agenteye-settings-option:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.agenteye-settings-option label {
+  font-size: 12px;
+  color: #f0f0f0;
+}
+
+.agenteye-select {
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #f0f0f0;
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+
+.agenteye-select:focus {
+  border-color: #e6d520;
+}
+
+.agenteye-settings-option input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #e6d520;
+  cursor: pointer;
+}
+
+/* =============================================================================
+   Utility
+   ============================================================================= */
+
+.hidden {
+  display: none !important;
+}
