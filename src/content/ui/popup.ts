@@ -54,9 +54,9 @@ export class AnnotationPopup {
       e.stopPropagation();
     });
 
-    // Meta info
+    // Details (framework + source accordions)
     this.metaContainer = document.createElement("div");
-    this.metaContainer.className = "agenteye-popup-meta";
+    this.metaContainer.className = "agenteye-popup-details";
 
     // Actions
     const actions = document.createElement("div");
@@ -84,23 +84,77 @@ export class AnnotationPopup {
     this.elementLabel.textContent = pending.element;
     this.textarea.value = "";
 
-    // Build meta info (safe DOM construction — no innerHTML)
+    // Build detail accordions
     this.metaContainer.textContent = "";
-    let hasMeta = false;
+    let hasDetails = false;
+
+    // Framework component tree accordion
+    if (pending.frameworkInfo) {
+      const components = pending.frameworkInfo.hierarchy
+        .split(" ")
+        .map((s) => s.replace(/^<|>$/g, ""));
+
+      this.metaContainer.appendChild(
+        this.createAccordion(
+          pending.frameworkInfo.framework,
+          pending.frameworkInfo.framework,
+          () => {
+            const content = document.createElement("div");
+            components.forEach((name, i) => {
+              const row = document.createElement("div");
+              row.className = "tree-item";
+
+              // Indent connector
+              if (i > 0) {
+                const connector = document.createElement("span");
+                connector.className = "tree-connector";
+                connector.textContent =
+                  "\u00A0".repeat(i * 2) +
+                  (i === components.length - 1
+                    ? "\u2514\u2500"
+                    : "\u251C\u2500");
+                row.appendChild(connector);
+              }
+
+              const nameSpan = document.createElement("span");
+              nameSpan.className = "component-name";
+              nameSpan.textContent = name;
+              row.appendChild(nameSpan);
+
+              content.appendChild(row);
+            });
+            return content;
+          },
+        ),
+      );
+      hasDetails = true;
+    }
+
+    // Source file accordion
+    if (pending.sourceFile) {
+      this.metaContainer.appendChild(
+        this.createAccordion("Source", "source", () => {
+          const code = document.createElement("code");
+          code.textContent = pending.sourceFile!;
+          return code;
+        }),
+      );
+      hasDetails = true;
+    }
+
+    // Selected text (plain, no accordion)
     if (pending.selectedText) {
       this.metaContainer.appendChild(
-        document.createTextNode(`Selected: "${pending.selectedText}"`),
+        this.createAccordion("Selected Text", "source", () => {
+          const code = document.createElement("code");
+          code.textContent = `"${pending.selectedText}"`;
+          return code;
+        }),
       );
-      hasMeta = true;
+      hasDetails = true;
     }
-    if (pending.frameworkInfo) {
-      const tag = document.createElement("span");
-      tag.className = "framework-tag";
-      tag.textContent = `${pending.frameworkInfo.framework}: ${pending.frameworkInfo.hierarchy}`;
-      this.metaContainer.appendChild(tag);
-      hasMeta = true;
-    }
-    this.metaContainer.classList.toggle("hidden", !hasMeta);
+
+    this.metaContainer.classList.toggle("hidden", !hasDetails);
 
     // Position popup near the click
     this.positionNear(pending.x, pending.y);
@@ -144,6 +198,40 @@ export class AnnotationPopup {
     }
 
     this.close();
+  }
+
+  private createAccordion(
+    label: string,
+    badgeClass: string,
+    buildContent: () => HTMLElement,
+  ): HTMLElement {
+    const accordion = document.createElement("div");
+    accordion.className = "agenteye-accordion";
+
+    const trigger = document.createElement("button");
+    trigger.className = "agenteye-accordion-trigger";
+
+    const badge = document.createElement("span");
+    badge.className = `badge ${badgeClass}`;
+    badge.textContent = label;
+
+    const chevron = document.createElement("span");
+    chevron.className = "chevron";
+    chevron.textContent = "\u25B8"; // ▸
+
+    trigger.append(badge, chevron);
+
+    const content = document.createElement("div");
+    content.className = "agenteye-accordion-content";
+    content.appendChild(buildContent());
+
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      accordion.classList.toggle("open");
+    });
+
+    accordion.append(trigger, content);
+    return accordion;
   }
 
   private positionNear(xPercent: number, yAbsolute: number): void {
