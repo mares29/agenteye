@@ -63,7 +63,7 @@ export class AnnotationPopup {
     actions.className = "agenteye-popup-actions";
 
     const cancelBtn = document.createElement("button");
-    cancelBtn.className = "agenteye-btn";
+    cancelBtn.className = "agenteye-btn muted";
     cancelBtn.textContent = "Cancel";
     cancelBtn.addEventListener("click", () => this.close());
 
@@ -99,7 +99,6 @@ export class AnnotationPopup {
           pending.frameworkInfo.framework,
           pending.frameworkInfo.framework,
           () => this.buildTreeView(components),
-          true,
         ),
       );
       hasDetails = true;
@@ -110,6 +109,19 @@ export class AnnotationPopup {
       this.metaContainer.appendChild(
         this.createAccordion("Source", "source", () => {
           return this.buildSourceBlock(pending.sourceFile!);
+        }),
+      );
+      hasDetails = true;
+    }
+
+    // CSS classes accordion
+    if (pending.cssClasses) {
+      this.metaContainer.appendChild(
+        this.createAccordion("Classes", "source", () => {
+          const block = document.createElement("code");
+          block.className = "agenteye-source-block";
+          block.textContent = pending.cssClasses!;
+          return block;
         }),
       );
       hasDetails = true;

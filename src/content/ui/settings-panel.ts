@@ -60,14 +60,19 @@ export class SettingsPanel {
     const clearLabel = document.createElement("label");
     clearLabel.textContent = "Clear after copy";
 
+    const clearToggle = document.createElement("label");
+    clearToggle.className = "agenteye-toggle";
     const clearCheckbox = document.createElement("input");
     clearCheckbox.type = "checkbox";
     clearCheckbox.checked = engine.getState().clearAfterCopy;
     clearCheckbox.addEventListener("change", () => {
       engine.setClearAfterCopy(clearCheckbox.checked);
     });
+    const clearTrack = document.createElement("span");
+    clearTrack.className = "agenteye-toggle-track";
+    clearToggle.append(clearCheckbox, clearTrack);
 
-    clearOption.append(clearLabel, clearCheckbox);
+    clearOption.append(clearLabel, clearToggle);
 
     // Sync UI when state changes (e.g. async settings load)
     this.unsubscribe = engine.on("state:change", (newState) => {

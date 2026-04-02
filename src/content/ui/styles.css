@@ -172,6 +172,16 @@
   }
 }
 
+.agenteye-btn.muted {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(240, 240, 240, 0.5);
+}
+
+.agenteye-btn.muted:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(240, 240, 240, 0.7);
+}
+
 .agenteye-btn.danger {
   background: transparent;
   color: #ff8a8a;
@@ -522,11 +532,20 @@
 .agenteye-accordion-inner {
   overflow: hidden;
   max-height: 300px;
+  padding: 0 10px;
 }
 
 .agenteye-accordion.open .agenteye-accordion-inner {
-  overflow-y: auto;
+  overflow-y: hidden;
   padding: 0 10px 10px;
+  /* Delay scroll until expand animation finishes */
+  animation: agenteye-enable-scroll 0s 0.25s forwards;
+}
+
+@keyframes agenteye-enable-scroll {
+  to {
+    overflow-y: auto;
+  }
 }
 
 /* Scrollbar */
