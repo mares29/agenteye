@@ -98,33 +98,8 @@ export class AnnotationPopup {
         this.createAccordion(
           pending.frameworkInfo.framework,
           pending.frameworkInfo.framework,
-          () => {
-            const content = document.createElement("div");
-            components.forEach((name, i) => {
-              const row = document.createElement("div");
-              row.className = "tree-item";
-
-              // Indent connector
-              if (i > 0) {
-                const connector = document.createElement("span");
-                connector.className = "tree-connector";
-                connector.textContent =
-                  "\u00A0".repeat(i * 2) +
-                  (i === components.length - 1
-                    ? "\u2514\u2500"
-                    : "\u251C\u2500");
-                row.appendChild(connector);
-              }
-
-              const nameSpan = document.createElement("span");
-              nameSpan.className = "component-name";
-              nameSpan.textContent = name;
-              row.appendChild(nameSpan);
-
-              content.appendChild(row);
-            });
-            return content;
-          },
+          () => this.buildTreeView(components),
+          true,
         ),
       );
       hasDetails = true;
@@ -134,21 +109,20 @@ export class AnnotationPopup {
     if (pending.sourceFile) {
       this.metaContainer.appendChild(
         this.createAccordion("Source", "source", () => {
-          const code = document.createElement("code");
-          code.textContent = pending.sourceFile!;
-          return code;
+          return this.buildSourceBlock(pending.sourceFile!);
         }),
       );
       hasDetails = true;
     }
 
-    // Selected text (plain, no accordion)
+    // Selected text accordion
     if (pending.selectedText) {
       this.metaContainer.appendChild(
-        this.createAccordion("Selected Text", "source", () => {
-          const code = document.createElement("code");
-          code.textContent = `"${pending.selectedText}"`;
-          return code;
+        this.createAccordion("Selection", "source", () => {
+          const block = document.createElement("code");
+          block.className = "agenteye-source-block";
+          block.textContent = pending.selectedText!;
+          return block;
         }),
       );
       hasDetails = true;
@@ -204,26 +178,37 @@ export class AnnotationPopup {
     label: string,
     badgeClass: string,
     buildContent: () => HTMLElement,
+    startOpen = false,
   ): HTMLElement {
     const accordion = document.createElement("div");
-    accordion.className = "agenteye-accordion";
+    accordion.className = "agenteye-accordion" + (startOpen ? " open" : "");
 
     const trigger = document.createElement("button");
     trigger.className = "agenteye-accordion-trigger";
 
+    // Badge with colored dot
     const badge = document.createElement("span");
     badge.className = `badge ${badgeClass}`;
-    badge.textContent = label;
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    badge.appendChild(dot);
+    badge.appendChild(document.createTextNode(label));
 
-    const chevron = document.createElement("span");
-    chevron.className = "chevron";
-    chevron.textContent = "\u25B8"; // ▸
+    // Chevron SVG
+    const chevronWrap = document.createElement("span");
+    chevronWrap.className = "chevron-icon";
+    chevronWrap.innerHTML =
+      '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 4.5L6 7.5L9 4.5"/></svg>';
 
-    trigger.append(badge, chevron);
+    trigger.append(badge, chevronWrap);
 
+    // Content with inner wrapper for smooth grid animation
     const content = document.createElement("div");
     content.className = "agenteye-accordion-content";
-    content.appendChild(buildContent());
+    const inner = document.createElement("div");
+    inner.className = "agenteye-accordion-inner";
+    inner.appendChild(buildContent());
+    content.appendChild(inner);
 
     trigger.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -232,6 +217,74 @@ export class AnnotationPopup {
 
     accordion.append(trigger, content);
     return accordion;
+  }
+
+  /** Build a visual tree view from component names */
+  private buildTreeView(components: string[]): HTMLElement {
+    const tree = document.createElement("div");
+    tree.className = "agenteye-tree";
+
+    components.forEach((name, i) => {
+      const item = document.createElement("div");
+      item.className = "agenteye-tree-item";
+
+      // Indent guides
+      if (i > 0) {
+        const indent = document.createElement("span");
+        indent.className = "tree-indent";
+        for (let level = 0; level < i; level++) {
+          const guide = document.createElement("span");
+          guide.className =
+            "tree-guide" +
+            (level === i - 1 && i === components.length - 1 ? " last" : "");
+          indent.appendChild(guide);
+        }
+        item.appendChild(indent);
+      }
+
+      // Component icon
+      const icon = document.createElement("span");
+      icon.className = "tree-icon " + (i === 0 ? "root" : "component");
+      icon.textContent = i === 0 ? "\u25C6" : "\u25CB"; // ◆ or ○
+      item.appendChild(icon);
+
+      // Component name
+      const nameEl = document.createElement("span");
+      nameEl.className = "tree-name";
+      nameEl.textContent = name;
+      item.appendChild(nameEl);
+
+      tree.appendChild(item);
+    });
+
+    return tree;
+  }
+
+  /** Build a source file code block with highlighted filename */
+  private buildSourceBlock(source: string): HTMLElement {
+    const block = document.createElement("code");
+    block.className = "agenteye-source-block";
+
+    // Split into path and line number
+    const colonIdx = source.lastIndexOf(":");
+    if (colonIdx > 0) {
+      const path = source.slice(0, colonIdx);
+      const line = source.slice(colonIdx);
+
+      const fileSpan = document.createElement("span");
+      fileSpan.className = "source-file";
+      fileSpan.textContent = path;
+
+      const lineSpan = document.createElement("span");
+      lineSpan.className = "source-line";
+      lineSpan.textContent = line;
+
+      block.append(fileSpan, lineSpan);
+    } else {
+      block.textContent = source;
+    }
+
+    return block;
   }
 
   private positionNear(xPercent: number, yAbsolute: number): void {
