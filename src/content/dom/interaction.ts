@@ -104,6 +104,7 @@ export function attachInteraction(
       fullPath: getFullElementPath(el),
       accessibility: getAccessibilityInfo(el),
       frameworkInfo,
+      sourceFile: frameworkInfo?.sourceFile,
       isFixed: isFixedPosition(el),
     };
 
