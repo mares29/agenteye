@@ -31,6 +31,7 @@ type DevStackEntry = {
   line: number;
   column: number;
   parent: DevStackEntry | null;
+  componentTag?: string; // Svelte 5 adds this for component entries
 };
 
 type SvelteMeta = {
@@ -69,8 +70,9 @@ function walkDevStack(
 
   while (current && depth < maxDepth) {
     if (current.type === "component" && current.file) {
-      const name = fileToComponentName(current.file);
-      if (name.length > 2) {
+      // Prefer componentTag (clean name like "Button") over file path parsing
+      const name = current.componentTag || fileToComponentName(current.file);
+      if (name && name.length > 1) {
         names.push(name);
         if (!sourceFile) {
           sourceFile = `${current.file}:${current.line}`;
@@ -82,6 +84,19 @@ function walkDevStack(
   }
 
   return { names, sourceFile };
+}
+
+/** Walk up DOM to find nearest element with __svelte_meta */
+function findNearestMeta(el: Element): SvelteMeta | null {
+  let current: Element | null = el.parentElement;
+  let depth = 0;
+  while (current && depth < 20) {
+    const meta = getSvelteMeta(current);
+    if (meta) return meta;
+    current = current.parentElement;
+    depth++;
+  }
+  return null;
 }
 
 export const svelteDetector: FrameworkDetector = {
@@ -113,53 +128,27 @@ export const svelteDetector: FrameworkDetector = {
   },
 
   getComponentInfo(el: Element): FrameworkComponentInfo | null {
-    // First check the element itself for __svelte_meta
-    const meta = getSvelteMeta(el);
-    if (meta) {
-      // Walk the parent dev_stack chain for component hierarchy
-      const { names, sourceFile } = walkDevStack(meta.parent);
+    const meta = getSvelteMeta(el) ?? findNearestMeta(el);
+    if (!meta) return null;
 
-      // The element's own loc gives us the source file of the template
-      const elementSource = `${meta.loc.file}:${meta.loc.line}`;
-      const elementComponentName = fileToComponentName(meta.loc.file);
+    const { names, sourceFile } = walkDevStack(meta.parent);
+    const elementSource = `${meta.loc.file}:${meta.loc.line}`;
 
-      // Prepend the element's own component if not already in the list
-      if (names.length === 0 || names[0] !== elementComponentName) {
-        names.unshift(elementComponentName);
-      }
+    // Use the file from loc to get the component that owns this template
+    const elementComponentName = fileToComponentName(meta.loc.file);
 
-      if (names.length === 0) return null;
-
-      return {
-        framework: "svelte",
-        hierarchy: names.map((n) => `<${n}>`).join(" "),
-        sourceFile: sourceFile ?? elementSource,
-      };
+    // Only prepend if the walkDevStack didn't already include it
+    // (happens when the first parent component entry has a different file)
+    if (names.length === 0 || names[0] !== elementComponentName) {
+      names.unshift(elementComponentName);
     }
 
-    // Walk up DOM to find nearest element with __svelte_meta
-    let current: Element | null = el.parentElement;
-    let depth = 0;
-    while (current && depth < 20) {
-      const parentMeta = getSvelteMeta(current);
-      if (parentMeta) {
-        const { names, sourceFile } = walkDevStack(parentMeta.parent);
-        const elementComponentName = fileToComponentName(parentMeta.loc.file);
-        if (names.length === 0 || names[0] !== elementComponentName) {
-          names.unshift(elementComponentName);
-        }
-        if (names.length === 0) return null;
-        return {
-          framework: "svelte",
-          hierarchy: names.map((n) => `<${n}>`).join(" "),
-          sourceFile:
-            sourceFile ?? `${parentMeta.loc.file}:${parentMeta.loc.line}`,
-        };
-      }
-      current = current.parentElement;
-      depth++;
-    }
+    if (names.length === 0) return null;
 
-    return null;
+    return {
+      framework: "svelte",
+      hierarchy: names.map((n) => `<${n}>`).join(" "),
+      sourceFile: sourceFile ?? elementSource,
+    };
   },
 };

@@ -93,6 +93,42 @@ describe("svelteDetector", () => {
       expect(info!.hierarchy).toContain("<App>");
     });
 
+    it("prefers componentTag over file path parsing", () => {
+      const el = document.createElement("button");
+
+      const appEntry = {
+        type: "component",
+        file: "src/App.svelte",
+        line: 1,
+        column: 0,
+        parent: null,
+        componentTag: "MapApp",
+      };
+      const panelEntry = {
+        type: "component",
+        file: "src/lib/components/topPanel/TopPanel.svelte",
+        line: 10,
+        column: 2,
+        parent: appEntry,
+        componentTag: "TopPanel",
+      };
+
+      (el as any).__svelte_meta = {
+        loc: {
+          file: "src/lib/components/ui/button/button.svelte",
+          line: 74,
+          column: 1,
+        },
+        parent: panelEntry,
+      };
+
+      const info = svelteDetector.getComponentInfo(el);
+      expect(info).not.toBeNull();
+      expect(info!.hierarchy).toContain("<TopPanel>");
+      expect(info!.hierarchy).toContain("<MapApp>");
+      expect(info!.hierarchy).toContain("<button>");
+    });
+
     it("skips non-component entries in dev_stack (if, each)", () => {
       const el = document.createElement("div");
 
