@@ -28,11 +28,18 @@ const shared: esbuild.BuildOptions = {
   plugins: [rawImportPlugin],
 };
 
-// Content script
+// Content script (isolated world)
 const contentBuild = esbuild.build({
   ...shared,
   entryPoints: ["src/content/index.ts"],
   outfile: "dist/content/index.js",
+});
+
+// Bridge script (MAIN world — accesses page JS like __svelte_meta)
+const bridgeBuild = esbuild.build({
+  ...shared,
+  entryPoints: ["src/content/detection/bridge.ts"],
+  outfile: "dist/content/bridge.js",
 });
 
 // Background service worker (can be ESM in Manifest V3 but IIFE is safer)
@@ -49,7 +56,7 @@ const popupBuild = esbuild.build({
   outfile: "dist/popup/popup.js",
 });
 
-await Promise.all([contentBuild, backgroundBuild, popupBuild]);
+await Promise.all([contentBuild, bridgeBuild, backgroundBuild, popupBuild]);
 
 // Copy static files
 mkdirSync("dist", { recursive: true });

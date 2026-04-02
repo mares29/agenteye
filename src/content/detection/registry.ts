@@ -2,60 +2,59 @@
 // Framework Detection Registry
 // =============================================================================
 //
-// Auto-detects which frameworks are present on the page and provides
-// a unified interface for querying component info from any detected framework.
+// Bridges between the content script (isolated world) and the MAIN world
+// bridge script that can access __svelte_meta / __reactFiber$ on DOM elements.
+//
+// Communication via CustomEvents on document.
 
-import type { FrameworkDetector } from "./types";
 import type { FrameworkComponentInfo } from "../types";
-import { reactDetector } from "./react";
-import { svelteDetector } from "./svelte";
 
-// All registered detectors
-const allDetectors: FrameworkDetector[] = [reactDetector, svelteDetector];
-
-// Active detectors (detected on current page)
-let activeDetectors: FrameworkDetector[] = [];
+let detectedFrameworks: string[] = [];
 let detected = false;
 
-/** Run detection for all registered frameworks. Returns names of detected frameworks. */
+/** Request framework detection from the MAIN world bridge */
 export function detectFrameworks(): string[] {
-  activeDetectors = allDetectors.filter((d) => d.detect());
-  detected = true;
-  return activeDetectors.map((d) => d.name);
+  document.dispatchEvent(new CustomEvent("agenteye:detect-request"));
+  // Response comes synchronously via event
+  return detectedFrameworks;
 }
 
-/** Get component info for an element from all active detectors.
- *  Lazily runs detection on first call if not yet detected —
- *  handles SPAs where frameworks mount after content script loads. */
+// Listen for detection response from bridge
+document.addEventListener("agenteye:detect-response", ((e: CustomEvent) => {
+  detectedFrameworks = e.detail?.frameworks ?? [];
+  detected = true;
+}) as EventListener);
+
+/** Get component info for an element by asking the MAIN world bridge.
+ *  Uses synchronous event dispatch — bridge responds immediately. */
 export function getComponentInfo(el: Element): FrameworkComponentInfo | null {
   if (!detected) {
     detectFrameworks();
   }
 
-  for (const detector of activeDetectors) {
-    const info = detector.getComponentInfo(el);
-    if (info) return info;
-  }
+  // Get element position to identify it in MAIN world
+  const rect = el.getBoundingClientRect();
+  const x = rect.left + rect.width / 2;
+  const y = rect.top + rect.height / 2;
 
-  // If no active detectors found anything, and we detected early,
-  // re-detect in case the framework mounted after initial detection
-  if (activeDetectors.length === 0) {
-    detectFrameworks();
-    for (const detector of activeDetectors) {
-      const info = detector.getComponentInfo(el);
-      if (info) return info;
-    }
-  }
+  let result: FrameworkComponentInfo | null = null;
 
-  return null;
+  const handler = ((e: CustomEvent) => {
+    result = e.detail;
+  }) as EventListener;
+
+  document.addEventListener("agenteye:element-info-response", handler, {
+    once: true,
+  });
+  document.dispatchEvent(
+    new CustomEvent("agenteye:element-info", { detail: { x, y } }),
+  );
+  document.removeEventListener("agenteye:element-info-response", handler);
+
+  return result;
 }
 
-/** Register a custom framework detector */
-export function registerDetector(detector: FrameworkDetector): void {
-  allDetectors.push(detector);
-}
-
-/** Get list of currently active (detected) framework names */
+/** Get list of detected framework names */
 export function getActiveFrameworks(): string[] {
-  return activeDetectors.map((d) => d.name);
+  return detectedFrameworks;
 }

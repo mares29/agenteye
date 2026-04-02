@@ -8,6 +8,8 @@ import { createAgentEye } from "./engine";
 import { attachInteraction } from "./dom/interaction";
 import { freezeAnimations } from "./dom/freeze";
 import { detectFrameworks, getComponentInfo } from "./detection/registry";
+// Note: actual framework detection runs in MAIN world via bridge.ts
+// registry.ts communicates with it via CustomEvents
 import { Toolbar } from "./ui/toolbar";
 import { HoverOverlay } from "./ui/hover-overlay";
 import { AnnotationMarkers } from "./ui/markers";
