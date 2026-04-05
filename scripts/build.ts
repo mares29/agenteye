@@ -63,5 +63,6 @@ mkdirSync("dist", { recursive: true });
 mkdirSync("dist/icons", { recursive: true });
 cpSync("manifest.json", "dist/manifest.json");
 cpSync("src/popup/index.html", "dist/popup/index.html");
+cpSync("icons", "dist/icons", { recursive: true });
 
 console.log("Build complete → dist/");

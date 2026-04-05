@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Dark rounded square background -->
+  <rect width="128" height="128" rx="24" ry="24" fill="#111111"/>
+  <!-- Eye shape - filled almond -->
+  <path d="M64 34 C36 34, 16 64, 16 64 C16 64, 36 94, 64 94 C92 94, 112 64, 112 64 C112 64, 92 34, 64 34 Z"
+        fill="#e6d520" opacity="0.2"/>
+  <path d="M64 34 C36 34, 16 64, 16 64 C16 64, 36 94, 64 94 C92 94, 112 64, 112 64 C112 64, 92 34, 64 34 Z"
+        fill="none" stroke="#e6d520" stroke-width="5"/>
+  <!-- Iris ring -->
+  <circle cx="64" cy="64" r="18" fill="none" stroke="#e6d520" stroke-width="5"/>
+  <!-- Pupil -->
+  <circle cx="64" cy="64" r="7" fill="#e6d520"/>
+</svg>

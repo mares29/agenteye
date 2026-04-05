@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "bun run build --watch",
     "build": "bun run scripts/build.ts",
+    "build:zip": "bun run build && cd dist && zip -r ../agenteye.zip . -x '*.map' '*.svg'",
     "test": "vitest run",
     "test:watch": "vitest"
   },
