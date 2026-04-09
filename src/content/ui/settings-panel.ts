@@ -14,6 +14,17 @@ const DETAIL_OPTIONS: { value: OutputDetailLevel; label: string }[] = [
   { value: "forensic", label: "Forensic" },
 ];
 
+const HOVER_COLORS = [
+  "#ffffff",
+  "#e6d520",
+  "#4ade80",
+  "#61dafb",
+  "#ff6b3d",
+  "#ff8a8a",
+  "#a78bfa",
+  "#f472b6",
+];
+
 export class SettingsPanel {
   private container: HTMLElement;
   private engine: AgentEyeEngine;
@@ -74,10 +85,43 @@ export class SettingsPanel {
 
     clearOption.append(clearLabel, clearToggle);
 
+    // Hover color picker
+    const colorOption = document.createElement("div");
+    colorOption.className = "agenteye-settings-option agenteye-color-option";
+
+    const colorLabel = document.createElement("label");
+    colorLabel.textContent = "Hover Color";
+
+    const colorSwatches = document.createElement("div");
+    colorSwatches.className = "agenteye-color-swatches";
+
+    const swatchEls: HTMLButtonElement[] = [];
+    for (const color of HOVER_COLORS) {
+      const swatch = document.createElement("button");
+      swatch.className = "agenteye-color-swatch";
+      if (color === engine.getState().hoverColor) {
+        swatch.classList.add("selected");
+      }
+      swatch.style.setProperty("--swatch-color", color);
+      swatch.addEventListener("click", () => {
+        engine.setHoverColor(color);
+      });
+      swatchEls.push(swatch);
+      colorSwatches.appendChild(swatch);
+    }
+
+    colorOption.append(colorLabel, colorSwatches);
+
     // Sync UI when state changes (e.g. async settings load)
     this.unsubscribe = engine.on("state:change", (newState) => {
       detailSelect.value = newState.outputDetail;
       clearCheckbox.checked = newState.clearAfterCopy;
+      for (let i = 0; i < HOVER_COLORS.length; i++) {
+        swatchEls[i].classList.toggle(
+          "selected",
+          HOVER_COLORS[i] === newState.hoverColor,
+        );
+      }
     });
 
     // Detected framework info
@@ -104,7 +148,13 @@ export class SettingsPanel {
     updateFramework();
     setTimeout(updateFramework, 1500);
 
-    this.container.append(title, frameworkRow, detailOption, clearOption);
+    this.container.append(
+      title,
+      frameworkRow,
+      detailOption,
+      clearOption,
+      colorOption,
+    );
     root.appendChild(this.container);
   }
 

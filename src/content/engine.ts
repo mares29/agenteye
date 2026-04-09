@@ -37,6 +37,7 @@ export type AgentEyeEngine = {
   setFrozen(frozen: boolean): void;
   setOutputDetail(level: OutputDetailLevel): void;
   setClearAfterCopy(enabled: boolean): void;
+  setHoverColor(color: string): void;
   setHoverInfo(info: HoverInfo | null): void;
   setPendingAnnotation(pending: PendingAnnotation | null): void;
   generateOutput(): string;
@@ -74,6 +75,7 @@ export function createAgentEye(config?: AgentEyeConfig): AgentEyeEngine {
     frozen: false,
     outputDetail: config?.outputDetail ?? "standard",
     clearAfterCopy: false,
+    hoverColor: "#ffffff",
     hoverInfo: null,
     pendingAnnotation: null,
     syncStatus: "idle",
@@ -104,6 +106,7 @@ export function createAgentEye(config?: AgentEyeConfig): AgentEyeEngine {
   loadSettings({
     outputDetail: state.outputDetail,
     clearAfterCopy: state.clearAfterCopy,
+    hoverColor: state.hoverColor,
   })
     .then((saved) => {
       const prev = cloneState(state);
@@ -114,6 +117,10 @@ export function createAgentEye(config?: AgentEyeConfig): AgentEyeEngine {
       }
       if (saved.clearAfterCopy !== state.clearAfterCopy) {
         state.clearAfterCopy = saved.clearAfterCopy;
+        changed = true;
+      }
+      if (saved.hoverColor !== state.hoverColor) {
+        state.hoverColor = saved.hoverColor;
         changed = true;
       }
       if (changed) emitStateChange(prev);
@@ -128,6 +135,7 @@ export function createAgentEye(config?: AgentEyeConfig): AgentEyeEngine {
     saveSettings({
       outputDetail: state.outputDetail,
       clearAfterCopy: state.clearAfterCopy,
+      hoverColor: state.hoverColor,
     });
   }
 
@@ -222,6 +230,14 @@ export function createAgentEye(config?: AgentEyeConfig): AgentEyeEngine {
       if (state.clearAfterCopy === enabled) return;
       const prev = cloneState(state);
       state.clearAfterCopy = enabled;
+      persistSettings();
+      emitStateChange(prev);
+    },
+
+    setHoverColor(color: string) {
+      if (state.hoverColor === color) return;
+      const prev = cloneState(state);
+      state.hoverColor = color;
       persistSettings();
       emitStateChange(prev);
     },

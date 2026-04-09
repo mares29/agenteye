@@ -283,6 +283,7 @@ describe("AgentEyeEngine", () => {
       vi.mocked(loadSettings).mockResolvedValueOnce({
         outputDetail: "standard",
         clearAfterCopy: false,
+        hoverColor: "#ffffff",
       });
 
       const handler = vi.fn();

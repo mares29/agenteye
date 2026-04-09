@@ -9,6 +9,7 @@ export class AnnotationMarkers {
   private root: ShadowRoot;
   private markers = new Map<string, HTMLElement>();
   private currentAnnotations: Annotation[] = [];
+  private currentColor = "#ffffff";
   private scrollHandler: () => void;
 
   constructor(root: ShadowRoot) {
@@ -43,6 +44,7 @@ export class AnnotationMarkers {
       }
 
       marker.textContent = String(index + 1);
+      this.applyColor(marker);
       this.positionMarker(marker, annotation);
     });
   }
@@ -57,6 +59,19 @@ export class AnnotationMarkers {
       // y is absolute document position — convert to viewport-relative for fixed container
       marker.style.top = `${annotation.y - window.scrollY}px`;
     }
+  }
+
+  setColor(color: string): void {
+    if (this.currentColor === color) return;
+    this.currentColor = color;
+    for (const marker of this.markers.values()) {
+      this.applyColor(marker);
+    }
+  }
+
+  private applyColor(marker: HTMLElement): void {
+    marker.style.background = this.currentColor;
+    marker.style.boxShadow = `0 2px 10px ${this.currentColor}4d, 0 0 0 2px ${this.currentColor}26`;
   }
 
   private repositionAll(): void {
