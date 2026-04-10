@@ -101,6 +101,7 @@ export type AgentEyeState = {
   frozen: boolean;
   outputDetail: OutputDetailLevel;
   clearAfterCopy: boolean;
+  hoverColor: string;
   hoverInfo: HoverInfo | null;
   pendingAnnotation: PendingAnnotation | null;
   syncStatus: SyncStatus;

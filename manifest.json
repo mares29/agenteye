@@ -9,7 +9,7 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-  "permissions": ["activeTab", "storage", "contextMenus"],
+  "permissions": ["activeTab", "storage", "contextMenus", "scripting"],
   "action": {
     "default_popup": "popup/index.html",
     "default_icon": {
@@ -22,17 +22,5 @@
   "background": {
     "service_worker": "background/index.js"
   },
-  "content_scripts": [
-    {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["content/bridge.js"],
-      "run_at": "document_idle",
-      "world": "MAIN"
-    },
-    {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["content/index.js"],
-      "run_at": "document_idle"
-    }
-  ]
+  "content_scripts": []
 }

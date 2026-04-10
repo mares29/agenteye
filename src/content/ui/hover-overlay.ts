@@ -8,6 +8,7 @@ import type { HoverInfo } from "../types";
 export class HoverOverlay {
   private container: HTMLElement;
   private label: HTMLElement;
+  private currentColor = "#ffffff";
 
   constructor(root: ShadowRoot) {
     this.container = document.createElement("div");
@@ -18,6 +19,14 @@ export class HoverOverlay {
     this.container.appendChild(this.label);
 
     root.appendChild(this.container);
+  }
+
+  setColor(color: string): void {
+    if (this.currentColor === color) return;
+    this.currentColor = color;
+    this.container.style.borderColor = color;
+    this.container.style.background = `${color}10`;
+    this.label.style.borderColor = `${color}4d`;
   }
 
   update(info: HoverInfo | null): void {

@@ -53,4 +53,4 @@ tests/              # vitest tests
 
 ## Color Palette
 
-Sulphur yellow (`#e6d520`) accent on glassy black (`rgba(0,0,0,0.75)` + blur).
+Monochrome — white (`#ffffff`) accent on glassy black (`rgba(0,0,0,0.75)` + blur).

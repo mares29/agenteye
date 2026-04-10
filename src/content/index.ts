@@ -2,7 +2,7 @@
 // Content Script Entry Point
 // =============================================================================
 // Bootstraps the AgentEye engine and UI inside the page.
-// Starts hidden — enabled per-site via the extension popup toggle.
+// Injected programmatically by background service worker on user action.
 
 import { createAgentEye } from "./engine";
 import { attachInteraction } from "./dom/interaction";
@@ -23,7 +23,7 @@ import styles from "./ui/styles.css?raw";
 const host = document.createElement("div");
 host.id = "agenteye-root";
 host.style.cssText =
-  "all: initial; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2147483647; pointer-events: none; display: none;";
+  "all: initial; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2147483647; pointer-events: none;";
 document.body.appendChild(host);
 
 const shadow = host.attachShadow({ mode: "open" });
@@ -55,7 +55,9 @@ let unfreezeRef: (() => void) | null = null;
 
 engine.on("state:change", (state) => {
   toolbar.update(state);
+  hoverOverlay.setColor(state.hoverColor);
   hoverOverlay.update(state.hoverInfo);
+  markers.setColor(state.hoverColor);
   markers.update(state.annotations);
 });
 
@@ -86,21 +88,21 @@ const detachInteraction = attachInteraction(engine, {
 });
 
 // =============================================================================
-// Show / Hide (controlled by popup toggle)
+// Show / Hide (controlled by popup toggle via background)
 // =============================================================================
 
-let extensionEnabled = false;
+let extensionEnabled = true; // Starts visible — injection IS the user action
+
+// Detect frameworks on load
+const detected = detectFrameworks();
+if (detected.length > 0) {
+  console.log(`[AgentEye] Detected frameworks: ${detected.join(", ")}`);
+}
 
 function showExtension(): void {
   if (extensionEnabled) return;
   extensionEnabled = true;
   host.style.display = "";
-
-  // Detect frameworks on first enable
-  const detected = detectFrameworks();
-  if (detected.length > 0) {
-    console.log(`[AgentEye] Detected frameworks: ${detected.join(", ")}`);
-  }
 }
 
 function hideExtension(): void {
@@ -108,38 +110,12 @@ function hideExtension(): void {
   extensionEnabled = false;
   host.style.display = "none";
 
-  // Deactivate annotation mode if active
   if (engine.getState().active) {
     engine.deactivate();
   }
-  // Unfreeze if frozen
   if (engine.getState().frozen) {
     engine.setFrozen(false);
   }
-}
-
-// Check if this origin was previously enabled
-const origin = window.location.origin;
-const ENABLED_SITES_KEY = "agenteye:enabledSites";
-
-chrome.storage?.local?.get(ENABLED_SITES_KEY, (result) => {
-  const sites: string[] = result[ENABLED_SITES_KEY] ?? [];
-  if (sites.includes(origin)) {
-    showExtension();
-  }
-});
-
-function persistEnabledState(): void {
-  chrome.storage?.local?.get(ENABLED_SITES_KEY, (result) => {
-    const sites: string[] = result[ENABLED_SITES_KEY] ?? [];
-    if (extensionEnabled && !sites.includes(origin)) {
-      chrome.storage.local.set({ [ENABLED_SITES_KEY]: [...sites, origin] });
-    } else if (!extensionEnabled && sites.includes(origin)) {
-      chrome.storage.local.set({
-        [ENABLED_SITES_KEY]: sites.filter((s) => s !== origin),
-      });
-    }
-  });
 }
 
 // =============================================================================
@@ -147,13 +123,17 @@ function persistEnabledState(): void {
 // =============================================================================
 
 chrome.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
+  if (message.type === "ping") {
+    sendResponse({ pong: true });
+    return;
+  }
+
   if (message.type === "toggle-extension") {
     if (extensionEnabled) {
       hideExtension();
     } else {
       showExtension();
     }
-    persistEnabledState();
     sendResponse({ enabled: extensionEnabled });
   }
 

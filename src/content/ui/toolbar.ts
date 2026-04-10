@@ -48,7 +48,12 @@ export class Toolbar {
     this.settings = new SettingsPanel(root, engine);
 
     this.container = document.createElement("div");
-    this.container.className = "agenteye-toolbar inactive";
+    this.container.className = "agenteye-toolbar inactive bounce-in";
+    this.container.addEventListener(
+      "animationend",
+      () => this.container.classList.remove("bounce-in"),
+      { once: true },
+    );
 
     // Activate button
     this.activateBtn = this.createButton(
@@ -86,7 +91,7 @@ export class Toolbar {
     });
 
     // Settings button
-    this.settingsBtn = this.createButton(ICON_SETTINGS, "", "", () => {
+    this.settingsBtn = this.createButton(ICON_SETTINGS, "", "icon-only", () => {
       this.settings.toggle();
     });
 

@@ -55,10 +55,34 @@
         transition: transform 0.2s;
       }
       .switch input:checked + .slider {
-        background: #e6d520;
+        background: #ffffff;
       }
       .switch input:checked + .slider::before {
         transform: translateX(18px);
+        background: #0b0b0e;
+      }
+      .coffee {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .divider {
+        width: 100%;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.08);
+        margin: 12px 0;
+      }
+      .coffee-text {
+        font-size: 11px;
+        color: rgba(240, 240, 240, 0.45);
+        text-align: center;
+        margin-bottom: 10px;
+      }
+      .qr {
+        width: 120px;
+        height: 120px;
+        border-radius: 8px;
+        opacity: 0.85;
       }
     </style>
   </head>
@@ -69,6 +93,11 @@
         <input type="checkbox" />
         <span class="slider"></span>
       </label>
+    </div>
+    <div class="coffee">
+      <div class="divider"></div>
+      <p class="coffee-text">Enjoying AgentEye?<br/>Buy me a coffee</p>
+      <img src="../icons/qr-coffee.png" alt="Buy me a coffee" class="qr" />
     </div>
     <script src="popup.js"></script>
   </body>
